@@ -14,11 +14,11 @@ from speech import Speech
 from knowledge import Knowledge
 from vision import Vision
 
-my_name = "Aaron"
-launch_phrase = "ok mirror"
-use_launch_phrase = True
+my_name = "Sergio"
+launch_phrase = "ok google"
+use_launch_phrase = False #True
 weather_api_token = "<weather_token>"
-wit_ai_token = "<wit.ai_token>"
+wit_ai_token = "Bearer 7OI3D6PU74FUGYYW2POT24YZO2KGBB7M"
 debugger_enabled = True
 camera = 0
 
@@ -59,7 +59,8 @@ class Bot(object):
 
         if speech is not None:
             try:
-                r = requests.get('https://api.wit.ai/message?v=20160918&q=%s' % speech,
+                print "Asking wit.ai %s" % (speech)
+                r = requests.get('https://api.wit.ai/message?v=20170115&q=%s' % speech,
                                  headers={"Authorization": wit_ai_token})
                 print r.text
                 json_resp = json.loads(r.text)
@@ -110,6 +111,8 @@ class Bot(object):
                 return
 
             self.decide_action()
+        else:
+            print "sppech is None ? ", speech
 
     def __joke_action(self):
         joke = self.nlg.joke()
