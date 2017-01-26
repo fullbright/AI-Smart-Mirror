@@ -21,6 +21,7 @@ weather_api_token = "<weather_token>"
 wit_ai_token = "Bearer 7OI3D6PU74FUGYYW2POT24YZO2KGBB7M"
 debugger_enabled = True
 camera = 0
+orangebox_ip = "192.168.1.10"
 
 
 class Bot(object):
@@ -70,7 +71,8 @@ class Bot(object):
                     entities = json_resp['entities']
                     intent = json_resp['entities']['Intent'][0]["value"]
 
-                print intent
+                print "The intent is : %s" % intent
+
                 if intent == 'greeting':
                     self.__text_action(self.nlg.greet())
                 elif intent == 'snow white':
@@ -96,6 +98,9 @@ class Bot(object):
                 elif intent == 'insult':
                     self.__insult_action()
                     return
+                elif intent == 'tvstate':
+                    self.__tv_action(entities)
+                    return
                 elif intent == 'appreciation':
                     self.__appreciation_action()
                     return
@@ -113,6 +118,25 @@ class Bot(object):
             self.decide_action()
         else:
             print "sppech is None ? ", speech
+
+    def __tv_action(self, entities=None):
+        #
+        print "TV action : Detect the entity and value"
+        print entities
+
+        if (entities is not None) and ("tv" in entities):
+            key = entities['tv'][0]['value']
+            print "The key is %s" % key
+
+            if key == "on" or key == 'off':
+                key = "116"
+
+            url = "http://%s:8080/remoteControl/cmd?operation=01&key=%s&mode=0" % (orangebox_ip, key)
+            print "The url is : %s" % url
+            r = requests.get(url)
+        else:
+            print "TV action detected but no tv key detected."
+
 
     def __joke_action(self):
         joke = self.nlg.joke()
