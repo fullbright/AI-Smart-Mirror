@@ -5,6 +5,7 @@ import sys
 sys.path.append("./")
 
 import requests
+import time
 import datetime
 import dateutil.parser
 import json
@@ -13,6 +14,7 @@ from nlg import NLG
 from speech import Speech
 from knowledge import Knowledge
 from vision import Vision
+from requests import ConnectionError
 
 my_name = "Sergio"
 launch_phrase = "ok google"
@@ -30,23 +32,40 @@ class Bot(object):
         self.speech = Speech(launch_phrase=launch_phrase, debugger_enabled=debugger_enabled)
         self.knowledge = Knowledge(weather_api_token)
         self.vision = Vision(camera=camera)
+        self.maxretries = 10
 
     def start(self):
         """
         Main loop. Waits for the launch phrase, then decides an action.
         :return:
         """
+        retry = 0
+
         while True:
-            requests.get("http://localhost:8080/clear")
-            if self.vision.recognize_face():
-                print "Found face"
-                if use_launch_phrase:
-                    recognizer, audio = self.speech.listen_for_audio()
-                    if self.speech.is_call_to_action(recognizer, audio):
-                        self.__acknowledge_action()
+            try:
+                requests.get("http://localhost:8080/clear")
+                if self.vision.recognize_face():
+                    print "Found face"
+                    if use_launch_phrase:
+                        recognizer, audio = self.speech.listen_for_audio()
+                        if self.speech.is_call_to_action(recognizer, audio):
+                            self.__acknowledge_action()
+                            self.decide_action()
+                    else:
                         self.decide_action()
-                else:
-                    self.decide_action()
+            except ConnectionError, e:
+                print "Unable to connect to the mirror. Implementing exponential backoff"
+                print "Increasing the retry count to %d/%d" % (retry, self.maxretries)
+                retry += 1
+
+                sleeptime = 2 ** retry
+                print "Sleeping %f seconds" % sleeptime
+                time.sleep(sleeptime)
+
+                if retry > self.maxretries :
+                    return False
+
+
 
     def decide_action(self):
         """
@@ -130,6 +149,8 @@ class Bot(object):
 
             if key == "on" or key == 'off':
                 key = "116"
+            elif key == "":
+                key = ""
 
             url = "http://%s:8080/remoteControl/cmd?operation=01&key=%s&mode=0" % (orangebox_ip, key)
             print "The url is : %s" % url
